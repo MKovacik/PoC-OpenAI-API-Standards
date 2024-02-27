@@ -1,10 +1,7 @@
-import base64
 import json
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import the CORS package
-import tiktoken
-from tiktoken import TikTokenizer
 from openai import AzureOpenAI
 #import openai
 from flasgger import swag_from, Swagger
@@ -39,22 +36,14 @@ model_token_limits = {
     'gpt-4': 8192,  
     # Add more models and their token limits here
 }
-# Define tokenizers for each model
-tokenizers = {
-    'gpt-3.5-turbo': TikTokenizer(model="gpt-3.5-turbo"),
-    'gpt-4': TikTokenizer(model="gpt-4"),
-    # Initialize more tokenizers as needed
-}
 
-def calculate_token_usage(conversation, model_name):
-    tokenizer = tokenizers.get(model_name)
-    if not tokenizer:
-        raise ValueError(f"Tokenizer not defined for model {model_name}")
-    
+#Using ticktoken for tokenization will be better for the future
+def calculate_token_usage(conversation):
     total_tokens = 0
     for exchange in conversation:
-        prompt_tokens = tokenizer.tokenize(exchange['prompt']).num_tokens
-        response_tokens = tokenizer.tokenize(exchange['response']).num_tokens
+        # Counting tokens as the number of space-separated words
+        prompt_tokens = len(exchange['prompt'].split())
+        response_tokens = len(exchange['response'].split())
         total_tokens += prompt_tokens + response_tokens
     return total_tokens
 
@@ -62,7 +51,8 @@ def trim_conversation(conversation, model_name):
     token_limit = model_token_limits.get(model_name)
     if not token_limit:
         raise ValueError(f"Token limit not defined for model {model_name}")
-    while calculate_token_usage(conversation, model_name) > token_limit:
+    while calculate_token_usage(conversation) > token_limit:
+        # Remove the oldest exchanges first to fit within the token limit
         conversation.pop(0)
     return conversation
 
