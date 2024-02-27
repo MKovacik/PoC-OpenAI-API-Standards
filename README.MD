@@ -27,7 +27,7 @@ To set up and run this project locally, follow these steps:
 
 ```
 sh
-git clone https://github.com/MKovacik/PoC---OpenAI-API-Standards.git
+git clone https://github.com/MKovacik/PoC-OpenAI-API-Standards.git
 cd repo
 ```
 
