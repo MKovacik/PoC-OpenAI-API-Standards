@@ -11,7 +11,6 @@ This project is a Flask-based web application designed to facilitate conversatio
 - CORS enabled for cross-origin requests.
 - Implementin Open AI API standars with Python openai library 1.0 and higher
 - Streamlit interface for interactive user engagement (Example of consuming Open AI API standars)
-- 
 ## Installation
 
 To set up and run this project locally, follow these steps:
