@@ -9,7 +9,6 @@ import logging
 import time
 from dotenv import load_dotenv
 
-
 app = Flask(__name__)
 CORS(app)  # Enable CORS for your Flask app and specify allowed origins
 Swagger(app)  # This line will enable swagger
@@ -162,7 +161,6 @@ def chat_completions():
     prompt = request_data.get('prompt', '')
     session_id = request_data.get('session_id')
     token = request_data.get('token')
-
     if token[:8] != security_token or not prompt or not session_id:
         return jsonify({"error": "Invalid token"}), 401
     # Check if the model is supported
@@ -177,7 +175,6 @@ def chat_completions():
         ]
     messages = conversations[session_id]
     messages.append({"role": "user", "content": prompt})
-
     try:
         # Call the OpenAI API with the required arguments
         response = client.chat.completions.create(
@@ -210,84 +207,10 @@ def chat_completions():
                 }
             ]
         }
-
         return jsonify(response_data)
-
     except Exception as e:
         error_message = str(e)
         return jsonify({"error": error_message}), 500
-
-@app.route('/api/dalle', methods=['POST'])
-@swag_from({
-    'tags': ['DALL-E'],
-    'description': '!! Currently not working due the API standarts missmatch. A DALL-E endpoint to generate images from text descriptions',
-    'parameters': [
-        {
-            'name': 'body',
-            'in': 'body',
-            'required': True,
-            'schema': {
-                'id': 'TextDescription',
-                'required': ['prompt', 'n', 'resolution', 'token'],
-                'properties': {
-                    'prompt': {
-                        'type': 'string',
-                        'description': 'The text description to generate an image from'
-                    },
-                    'n': {
-                        'type': 'integer',
-                        'description': 'The number of images to generate'
-                    },
-                    'resolution': {
-                        'type': 'string',
-                        'description': 'The resolution of the generated images'
-                    },
-                    'token': {
-                        'type': 'string',
-                        'description': 'Token used for authentication'
-                    }
-                }
-            }
-        }
-    ],
-    'responses': {
-        200: {
-            'description': 'Successful operation'
-        },
-        400: {
-            'description': 'Invalid input'
-        }
-    }
-})
-def dalle():
-    user_input = request.json.get('prompt')
-    image_n = request.json.get('n', 1)  # Default to 1 if not specified
-    resolution = request.json.get('resolution')
-    token = request.json.get('token')
-
-    if token[:8] != security_token:
-        return jsonify({"error": "Invalid token"}), 401
-
-    try:
-        response = clientdalle.images.generate(
-          prompt=user_input,
-          size=resolution,
-          n=image_n
-        )
-
-        json_response = json.loads(response.model_dump_json())
-        image_url = json_response["data"][0]["url"]
-
-        if not image_url:
-            raise ValueError("No image URL in response")
-
-        return jsonify({"image_url": image_url})
-        #image_url = response["data"][0]["url"]
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
