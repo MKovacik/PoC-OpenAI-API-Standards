@@ -191,7 +191,7 @@ def chat_completions():
         generated_text = response.choices[0].message.content
         # Add the assistant's response to the conversation
         messages.append({"role": "assistant", "content": generated_text})
-        conversation = trim_conversation(conversation, model)
+        messages = trim_conversation(messages, model)
         # Prepare the response data
         response_data = {
             "id": session_id,
