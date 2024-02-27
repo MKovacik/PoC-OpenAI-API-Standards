@@ -41,9 +41,9 @@ def calculate_token_usage(conversation):
     total_tokens = 0
     for exchange in conversation:
         # Counting tokens as the number of space-separated words
-        prompt_tokens = len(exchange['prompt'].split())
-        response_tokens = len(exchange['response'].split())
-        total_tokens += prompt_tokens + response_tokens
+        prompt_length = len(exchange.get('prompt', ''))
+        response_length = len(exchange.get('response', ''))
+        total_tokens += prompt_length + response_length
     return total_tokens
 
 def trim_conversation(conversation, model_name):
