@@ -48,7 +48,7 @@ pip install -r requirements.txt
 ```
 api_key='your Open AI API key'
 api_url='your Open AI API URL'
-token='you can specify your token'
+token='you can specify your token in Bearer format'
 model='your model name'
 ```
 
