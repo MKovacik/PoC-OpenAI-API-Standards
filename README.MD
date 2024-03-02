@@ -1,6 +1,6 @@
 # AI Chat Application
 
-This project is a Flask-based web application designed to facilitate conversations with an AI model. It allows users to send messages to the AI and receive responses, maintaining a conversation history. The application also integrates with an external AI service via API calls.
+This project is a Flask-based web application designed to facilitate conversations with an AI model. It allows users to send messages to the AI and receive responses, maintaining a conversation history. The application can be also integrates with an external AI service via API calls and manage access throw your own Bearer token authentification.
 
 ## Features
 
@@ -9,6 +9,7 @@ This project is a Flask-based web application designed to facilitate conversatio
 - Integration with external AI services using API tokens for authentication.
 - Swagger documentation for API endpoints.
 - CORS enabled for cross-origin requests.
+- Bearer token authentification
 - Implementin Open AI API standars with Python openai library 1.0 and higher
 - Streamlit interface for interactive user engagement (Example of consuming Open AI API standars)
 ## Installation
@@ -46,13 +47,13 @@ pip install -r requirements.txt
    Create a `.env` file in the root directory of the project. Add your API token and other configuration variables like so:
 
 ```
-api_key='your Open AI API key'
-api_url='your Open AI API URL'
-token='you can specify your token in Bearer format'
-model='your model name'
+api_key='your Open AI API key' - For example: 12abcb13bda3a9ac863s2a4436b135
+api_url='your Open AI API URL' - For example: https://yourdeployment.openai.azure.com/
+token='you can specify your token in Bearer format' - For your own Bearer token authentification - For example: 92459a3567assa45tttey677890ogghht44556yzsw12345lkjhgcvbnm1234
+model='your model name' - For example: gpt-3.5-turbo-0301
 ```
 
-   Make sure to replace 'your Open AI API key', 'your Open AI API URL' and 'your model name' with your actual information Key,URl,Model. 'you can specify your token' can be anything. 
+   Make sure to replace 'your Open AI API key', 'your Open AI API URL' and 'your model name' with your actual information Key,URl,Model. 'you can specify your token' can be anything - importat will be have same token in swagger authentification in Bearer format. 
 
 4. **Run the Application**
 
