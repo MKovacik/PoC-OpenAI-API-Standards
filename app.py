@@ -10,23 +10,47 @@ import time
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for your Flask app and specify allowed origins
-Swagger(app)  # This line will enable swagger
 load_dotenv()
+CORS(app)  # Enable CORS for your Flask app and specify allowed origins
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec_1',
+            "route": '/apispec_1.json',
+            "rule_filter": lambda rule: True,  # all in
+            "model_filter": lambda tag: True,  # all in
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/swagger/",
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Enter your bearer token in the format **Bearer <token>**"
+        }
+    }
+}
+Swagger(app, config=swagger_config)  # This line will enable swagger with custom security definition
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 security_token = os.getenv("token")
+# Example function to validate the API KEY
+def is_valid_api_key(api_key):
+    # Here, you would check the API key against your stored value(s)
+    # For demonstration, let's assume a simple check against an environment variable
+    expected_api_key = os.getenv("token", "").strip()  # Ensure default to empty string and strip whitespace
+    return api_key.strip() == expected_api_key
+
 client = AzureOpenAI(
   azure_endpoint = os.getenv("api_url"), 
   api_key= os.getenv("api_key"),  
   api_version="2024-02-15-preview"
-)
-clientdalle = AzureOpenAI(
-    api_version="2023-12-01-preview",  
-    azure_endpoint = os.getenv("api_url"), 
-    api_key= os.getenv("api_key"), 
 )
 
 # Define token limits for each model
@@ -57,7 +81,7 @@ def trim_conversation(conversation, model_name):
 
 conversations= {}
 
-@app.route('/v1/conversations/<session_id>', methods=['GET'])
+@app.route('/conversations/<session_id>', methods=['GET'])
 @swag_from({
     'tags': ['Conversations'],
     'description': 'Get a conversation based on the session ID',
@@ -91,7 +115,7 @@ def get_conversation(session_id):
     else:
         return jsonify({"error": "Conversation not found for the given session ID"}), 404
 
-@app.route('/v1/chat/completions', methods=['POST'])
+@app.route('/chat/completions', methods=['POST'])
 @swag_from({
     'tags': ['Chat Completions'],
     'description': 'Generate text completions based on a prompt',
@@ -105,24 +129,29 @@ def get_conversation(session_id):
                 'properties': {
                     'model': {
                         'type': 'string',
-                        'description': 'Model to use for the completion.',
+                        'description': 'Model to use for the completion. Defaults to "default-model"',
                         'default': 'default-model'
                     },
-                    'prompt': {
-                        'type': 'string',
-                        'description': 'Prompt to generate text from',
-                        'required': True
-                    },
-                     'token': {
-                        'type': 'string',
-                        'description': 'Security token',
-                    },
-                     'session_id': {
-                        'type': 'string',
-                        'description': 'Unique session ID for the conversation',
-                        'required': True
+                    'messages': {
+                        'type': 'array',
+                        'description': 'Array of message objects',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'role': {
+                                    'type': 'string',
+                                    'description': 'Role of the message sender (e.g., "user", "system")'
+                                },
+                                'content': {
+                                    'type': 'string',
+                                    'description': 'Content of the message'
+                                }
+                            },
+                            'required': ['role', 'content']
+                        }
                     }
-                }
+                },
+                'required': ['model', 'messages']
             }
         }
     ],
@@ -153,20 +182,40 @@ def get_conversation(session_id):
             }
         },
         400: {'description': 'Invalid input'}
-    }
+    },
+    'security': [
+        {"Bearer": []}  # References the security definition "Bearer"
+    ]
 }, validation=True)
+
 def chat_completions():
+    # Extract the API KEY from the Authorization header
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        api_key = auth_header[7:]  # Correctly strip 'Bearer ' prefix to get the actual API key
+    else:
+        return jsonify({"error": "Authorization header is missing or invalid"}), 401
+    
+    # Validate the API KEY
+    if not is_valid_api_key(api_key):
+        return jsonify({"error": "Invalid API key (header)" + api_key + " and is not matching to (token from env. variable) " + security_token}), 401
+    
     request_data = request.json
     model = request_data.get('model', 'default-model')  # Default model if not specified
-    prompt = request_data.get('prompt', '')
-    session_id = request_data.get('session_id')
-    token = request_data.get('token')
-    if token[:8] != security_token or not prompt or not session_id:
-        return jsonify({"error": "Invalid token"}), 401
+    
+    # Adjusted to support 'messages' array in the request payload
+    messages = request_data.get('messages')
+    if not messages:
+        return jsonify({"error": "Messages are required"}), 400
+    
+    # Extract 'prompt' and 'session_id' from the messages array if necessary
+    prompt = next((msg['content'] for msg in messages if msg['role'] == 'user'), '')
+    session_id = request_data.get('session_id', 'default-session')  # Example, adjust as needed
+
     # Check if the model is supported
     if model not in model_token_limits:
         return jsonify({"error": f"Model {model} is not supported"}), 400
-
+    
     promtdefintion = "You are a helpful assistant."
     # Prepare the messages for the OpenAI API
     if session_id not in conversations:
@@ -175,8 +224,14 @@ def chat_completions():
         ]
     messages = conversations[session_id]
     messages.append({"role": "user", "content": prompt})
+
     try:
         # Call the OpenAI API with the required arguments
+        client = AzureOpenAI(
+            azure_endpoint=os.getenv("api_url"), # Use the API URL obtained from the environment variable - Azure config
+            api_key=os.getenv("api_key"),  # Use the API key obtained from the environment variable - Azure config
+            api_version="2024-02-15-preview"
+        )
         response = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -207,7 +262,9 @@ def chat_completions():
                 }
             ]
         }
+
         return jsonify(response_data)
+
     except Exception as e:
         error_message = str(e)
         return jsonify({"error": error_message}), 500

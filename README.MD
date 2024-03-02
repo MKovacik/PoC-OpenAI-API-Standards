@@ -83,8 +83,8 @@ streamlit run streamlit_app.py
 
 ## Usage
 
-Once the application is running, you can access the Swagger UI to test the API endpoints by navigating to `http://localhost:5000/apidocs` in your web browser.
+Once the application is running, you can access the Swagger UI to test the API endpoints by navigating to `http://localhost:5000/swagger` in your web browser.
 
-To interact with the AI, use the `/v1/chat/completions` endpoint to send messages and receive responses. For retrieving conversation history, use the `/v1/conversations/<session_id>` endpoint.
+To interact with the AI, use the `/chat/completions` endpoint to send messages and receive responses. For retrieving conversation history, use the `/conversations/<session_id>` endpoint.
 
 To interact with the AI through the Streamlit interface, ensure you've started the Streamlit server as described above. The interface allows for sending messages to the AI and viewing responses, along with conversation history. Implementing Streamlit interface is just PoC, that by implementation of Open AI API standars you can do integration with any other AI API and open-source projects or COTS products.
